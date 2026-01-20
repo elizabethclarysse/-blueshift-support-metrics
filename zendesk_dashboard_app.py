@@ -422,8 +422,8 @@ def get_metrics():
         return jsonify({'error': 'Failed to fetch metrics'}), 500
 
     # For monthly trend, we need historical data to show a meaningful trend
-    # Fetch last 4 months of data separately (with caching)
-    months_back = 4
+    # Fetch last 2 months of data separately (with caching) for faster loading
+    months_back = 2
     trend_start = (today.replace(day=1) - timedelta(days=months_back * 31)).replace(day=1)
     trend_start_str = trend_start.strftime('%Y-%m-%d')
 

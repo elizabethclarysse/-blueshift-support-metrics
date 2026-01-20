@@ -1,1 +1,1 @@
-web: gunicorn zendesk_dashboard_app:app
+web: gunicorn zendesk_dashboard_app:app --timeout 120 --workers 2
