@@ -78,7 +78,7 @@ class ZendeskDashboard:
         }
 
         page = 1
-        while url and page <= 10:  # Limit to 10 pages for performance
+        while url and page <= 5:  # Limit to 5 pages for performance (500 tickets max)
             if page == 1:
                 response = requests.get(url, auth=self.auth, params=params, timeout=30)
             else:
