@@ -31,11 +31,12 @@ Thumbs.db
 
 # Data files
 *.csv
-*.txt
 *.pptx
 *.png
-*.json
 cookies.txt
+
+# Allow requirements.txt
+!requirements.txt
 
 # Project specific
 blueshift-support-bot-v2/

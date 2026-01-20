@@ -1,0 +1,9 @@
+Flask>=2.3.0
+gunicorn>=21.2.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Main requirements file for all projects
+# Check individual project folders for specific requirements
