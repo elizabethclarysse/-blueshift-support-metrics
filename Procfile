@@ -1,0 +1,1 @@
+web: gunicorn zendesk_dashboard_app:app

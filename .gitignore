@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Data files
+*.csv
+*.txt
+*.pptx
+*.png
+*.json
+cookies.txt
+
+# Project specific
+blueshift-support-bot-v2/
+blueshift-support-bot-v2-backup*/
+blueshiftsupport-capture/
+blueshift-clone/
+projects/
+Untitled/

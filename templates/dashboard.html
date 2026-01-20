@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zendesk Support Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .last-updated {
+            float: right;
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .metric-label {
+            color: #999;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-subvalue {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .last-updated {
+                float: none;
+                display: block;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Zendesk Support Dashboard</h1>
+            <div class="subtitle">Real-time support metrics and analytics</div>
+            <div class="last-updated" id="lastUpdated">Loading...</div>
+        </header>
+
+        <div id="loading" class="loading">Loading dashboard data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="dashboard" style="display: none;">
+
+            <!-- Key Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Tickets</div>
+                    <div class="metric-value" id="totalTickets">-</div>
+                    <div class="metric-subvalue" id="dateRange">Current Month</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Avg Response Time</div>
+                    <div class="metric-value" id="avgResponseTime">-</div>
+                    <div class="metric-subvalue" id="medianResponseTime">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Avg Resolution Time</div>
+                    <div class="metric-value" id="avgResolutionTime">-</div>
+                    <div class="metric-subvalue" id="medianResolutionTime">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">CSAT Score</div>
+                    <div class="metric-value" id="csatScore">-</div>
+                    <div class="metric-subvalue" id="csatDetails">-</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Escalations</div>
+                    <div class="metric-value" id="escalations">-</div>
+                    <div class="metric-subvalue">JIRA escalated</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Bugs</div>
+                    <div class="metric-value" id="bugs">-</div>
+                    <div class="metric-subvalue">Platform Bugs</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Issues</div>
+                    <div class="metric-value" id="issues">-</div>
+                    <div class="metric-subvalue">Data/Infrastructure</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Feature Requests</div>
+                    <div class="metric-value" id="featureRequests">-</div>
+                    <div class="metric-subvalue">Enhancement Ideas</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Tickets by Status (Current Month)</div>
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Custom Priority Distribution</div>
+                    <canvas id="priorityChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Monthly Trend - Tickets, Bugs & Escalations</div>
+                    <canvas id="trendChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Top Features with Bugs/Issues</div>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-title">Resolution Types Distribution</div>
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tables -->
+            <div class="table-card">
+                <div class="chart-title">Top Clients by Ticket Volume</div>
+                <table id="clientsTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Client</th>
+                            <th>Tickets</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="chart-title">Top Clients by Chat Volume</div>
+                <table id="chatClientsTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Client</th>
+                            <th>Chat Tickets</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="chart-title">Agent Performance</div>
+                <table id="agentsTable">
+                    <thead>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Tickets Handled</th>
+                            <th>Avg FRT (hours)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="chart-title">JIRA Escalations by Feature</div>
+                <table id="engineeringTable">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Escalations</th>
+                            <th>Sample Ticket</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        function formatHours(hours) {
+            if (hours < 1) {
+                return `${Math.round(hours * 60)}m`;
+            } else if (hours < 24) {
+                return `${hours.toFixed(1)}h`;
+            } else {
+                return `${(hours / 24).toFixed(1)}d`;
+            }
+        }
+
+        function updateMetrics(data) {
+            // Update key metrics
+            document.getElementById('totalTickets').textContent = data.total_tickets.toLocaleString();
+            document.getElementById('avgResponseTime').textContent = formatHours(data.avg_response_time);
+            document.getElementById('medianResponseTime').textContent = `Median: ${formatHours(data.median_response_time)}`;
+            document.getElementById('avgResolutionTime').textContent = formatHours(data.avg_resolution_time);
+            document.getElementById('medianResolutionTime').textContent = `Median: ${formatHours(data.median_resolution_time)}`;
+            document.getElementById('csatScore').textContent = `${data.csat.score.toFixed(1)}%`;
+            document.getElementById('csatDetails').textContent = `${data.csat.good_ratings}/${data.csat.total_ratings} positive`;
+            document.getElementById('escalations').textContent = data.escalations.toLocaleString();
+            document.getElementById('bugs').textContent = data.bugs.toLocaleString();
+            document.getElementById('issues').textContent = (data.issues || 0).toLocaleString();
+            document.getElementById('featureRequests').textContent = data.feature_requests.toLocaleString();
+            document.getElementById('lastUpdated').textContent = `Last updated: ${data.last_updated}`;
+        }
+
+        function createCharts(data) {
+            // Status Chart - Bar chart instead of doughnut for better readability
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (charts.status) charts.status.destroy();
+            charts.status = new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data.tickets_by_status).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                    datasets: [{
+                        label: 'Tickets',
+                        data: Object.values(data.tickets_by_status),
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+            if (charts.priority) charts.priority.destroy();
+            charts.priority = new Chart(priorityCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data.tickets_by_priority),
+                    datasets: [{
+                        label: 'Tickets',
+                        data: Object.values(data.tickets_by_priority),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Trend Chart - Multi-line with total, bugs, issues, escalations
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            if (charts.trend) charts.trend.destroy();
+            const months = Object.keys(data.monthly_trend);
+            const totals = months.map(m => data.monthly_trend[m].total);
+            const bugs = months.map(m => data.monthly_trend[m].bugs);
+            const issues = months.map(m => data.monthly_trend[m].issues || 0);
+            const escalations = months.map(m => data.monthly_trend[m].escalations);
+
+            charts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Total Tickets',
+                            data: totals,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Bugs',
+                            data: bugs,
+                            borderColor: '#fa709a',
+                            backgroundColor: 'rgba(250, 112, 154, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Issues',
+                            data: issues,
+                            borderColor: '#feca57',
+                            backgroundColor: 'rgba(254, 202, 87, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Escalations',
+                            data: escalations,
+                            borderColor: '#f093fb',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Feature Bugs Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            if (charts.category) charts.category.destroy();
+            const featureBugs = data.feature_bugs || [];
+            charts.category = new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: featureBugs.map(f => f.feature || 'Not Set').slice(0, 10),
+                    datasets: [{
+                        label: 'Bugs/Issues',
+                        data: featureBugs.map(f => f.count).slice(0, 10),
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Resolution Type Distribution Chart - Horizontal Bar
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            if (charts.type) charts.type.destroy();
+            const resolutionTypes = data.tickets_by_resolution_type || {};
+            const sortedResTypes = Object.entries(resolutionTypes)
+                .sort((a, b) => b[1] - a[1]);
+            charts.type = new Chart(typeCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedResTypes.map(([k, v]) => k.replace(/_/g, ' ').toUpperCase()),
+                    datasets: [{
+                        label: 'Tickets',
+                        data: sortedResTypes.map(([k, v]) => v),
+                        backgroundColor: '#4facfe'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function updateTables(data) {
+            // Update clients table (Blueshift excluded)
+            const clientsBody = document.querySelector('#clientsTable tbody');
+            clientsBody.innerHTML = '';
+            data.top_clients.forEach((client, index) => {
+                const row = clientsBody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${client.name}</td>
+                    <td><span class="badge badge-${client.count > 50 ? 'danger' : client.count > 20 ? 'warning' : 'success'}">${client.count}</span></td>
+                `;
+            });
+
+            // Update chat clients table
+            const chatClientsBody = document.querySelector('#chatClientsTable tbody');
+            chatClientsBody.innerHTML = '';
+            const chatClients = data.top_clients_chat || [];
+            chatClients.forEach((client, index) => {
+                const row = chatClientsBody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${client.name}</td>
+                    <td><span class="badge badge-${client.count > 20 ? 'danger' : client.count > 10 ? 'warning' : 'success'}">${client.count}</span></td>
+                `;
+            });
+
+            // Update agents table
+            const agentsBody = document.querySelector('#agentsTable tbody');
+            agentsBody.innerHTML = '';
+            data.agent_stats.forEach(agent => {
+                const row = agentsBody.insertRow();
+                row.innerHTML = `
+                    <td>${agent.name}</td>
+                    <td>${agent.count}</td>
+                    <td>${agent.avg_frt.toFixed(1)}</td>
+                `;
+            });
+
+            // Update engineering issues table
+            const engineeringBody = document.querySelector('#engineeringTable tbody');
+            engineeringBody.innerHTML = '';
+            const engIssues = data.engineering_issues || [];
+            engIssues.slice(0, 10).forEach(issue => {
+                const row = engineeringBody.insertRow();
+                const sampleTicket = issue.sample_tickets && issue.sample_tickets[0]
+                    ? `#${issue.sample_tickets[0].id}: ${issue.sample_tickets[0].subject}`
+                    : 'N/A';
+                row.innerHTML = `
+                    <td><strong>${issue.feature || 'Not Set'}</strong></td>
+                    <td><span class="badge badge-danger">${issue.count}</span></td>
+                    <td style="font-size: 0.85em;">${sampleTicket}</td>
+                `;
+            });
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const data = await response.json();
+
+                // Hide loading, show dashboard
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+
+                // Update all components
+                updateMetrics(data);
+                createCharts(data);
+                updateTables(data);
+
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Error loading dashboard: ${error.message}`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Initial load
+        fetchData();
+
+        // Auto-refresh every 5 minutes
+        setInterval(fetchData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
