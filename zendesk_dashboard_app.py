@@ -15,10 +15,10 @@ import time
 
 app = Flask(__name__)
 
-# Zendesk API credentials
-ZENDESK_SUBDOMAIN = "blueshiftsuccess"
-ZENDESK_EMAIL = "elizabeth@getblueshift.com"
-ZENDESK_API_TOKEN = "sUTVfNmGxrk0S5ZbkqRJ0Uk4NoScEgTYZyIf3zaW"
+# Zendesk API credentials - loaded from environment variables
+ZENDESK_SUBDOMAIN = os.environ.get('ZENDESK_SUBDOMAIN')
+ZENDESK_EMAIL = os.environ.get('ZENDESK_EMAIL')
+ZENDESK_API_TOKEN = os.environ.get('ZENDESK_API_TOKEN')
 
 # Custom field IDs
 CUSTOM_PRIORITY_FIELD_ID = 12111292502931
@@ -78,7 +78,7 @@ class ZendeskDashboard:
         }
 
         page = 1
-        while url and page <= 5:  # Limit to 5 pages for performance (500 tickets max)
+        while url and page <= 10:  # Limit to 10 pages for performance
             if page == 1:
                 response = requests.get(url, auth=self.auth, params=params, timeout=30)
             else:
@@ -422,8 +422,8 @@ def get_metrics():
         return jsonify({'error': 'Failed to fetch metrics'}), 500
 
     # For monthly trend, we need historical data to show a meaningful trend
-    # Fetch last 2 months of data separately (with caching) for faster loading
-    months_back = 2
+    # Fetch last 4 months of data separately (with caching)
+    months_back = 4
     trend_start = (today.replace(day=1) - timedelta(days=months_back * 31)).replace(day=1)
     trend_start_str = trend_start.strftime('%Y-%m-%d')
 
